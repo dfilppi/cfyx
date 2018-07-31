@@ -1,0 +1,68 @@
+#!/bin/bash 
+
+# CFYX is a preprocessor to add conveniences to the cfy command
+
+ADDARGS=""
+CFYX_HOME=~/.cfyx
+
+if [ ! -d ~/.cfyx ]; then
+  mkdir ~/.cfyx
+fi
+
+if [ $# -eq 0 ]; then
+  cfy
+  exit $?
+fi
+
+if [[ $1 == ex* ]]; then
+  if [ "$2" = "start" ]; then
+    flag=0
+    for arg in $@; do
+      if [ "$arg" = "-d" ]; then
+        flag=1
+      elif [ $flag -eq 1 ]; then 
+        dpmt=$arg
+        break
+      fi
+    done
+
+    if [ ! -d $CFYX_HOME/$dpmt ]; then
+      mkdir $CFYX_HOME/$dpmt
+    fi
+
+    cfy $*
+
+    echo $dpmt
+    exe=`cfy executions list -d $dpmt | grep '^| [a-z0-9]'|tail -1|cut -f2 -d' '`
+    echo $exe > $CFYX_HOME/$dpmt/execution
+  fi
+
+elif [[ $1 == can* ]]; then
+    d=`ls -1rt $CFYX_HOME|tail -1`
+    e=`cat $CFYX_HOME/$d/execution`
+    cfy executions cancel $e
+elif [[ $1 == uni* ]]; then
+  # Handle simple uninstall. If no deployment specified use last
+  d=`ls -1rt $CFYX_HOME|tail -1`
+  cfy executions start uninstall -d $d -p ignore_failure=true
+elif [[ $1 == cun* ]]; then
+  # Handle simple cuninstall (cancel+uninstall). If no deployment specified use last
+  d=`ls -1rt $CFYX_HOME|tail -1`
+  e=`cat $CFYX_HOME/$d/execution`
+  cfy executions cancel $e
+  sleep 4
+  cfy executions start uninstall -d $d -p ignore_failure=true
+elif [[ $1 == eli* && $# == 1 ]]; then
+  # list executions for last dep
+  d=`ls -1rt $CFYX_HOME|tail -1`
+  cfy exec list -d $d
+elif [[ $1 == dli* && $# == 1 ]]; then
+  cfy depl list
+elif [[ $1 == evli* && $# == 1 ]]; then
+  # get events for last execution
+  d=`ls -1rt $CFYX_HOME|tail -1`
+  e=`cat $CFYX_HOME/$d/execution`
+  cfy eve list -e $e
+else
+  cfy $*
+fi

@@ -2,7 +2,7 @@
 
 ### Installation
 
-Put the cfyx file in a directory of your choice, and add it to the beginning of your PATH variable ( via .bash_profile, etc...).
+Put the cfyx file in a directory of your choice, and add it to the beginning of your PATH variable ( via .bash_profile, etc...).  Also add an alias for complete transparency, e.g. alias cfy=cfyx
 
 ### Theory of operation
 

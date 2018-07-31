@@ -6,7 +6,7 @@ Put the cfyx file in a directory of your choice, and add it to the beginning of 
 
 ### Theory of operation
 
-The goal _cfyx_ is to simplify life for those who use the Cloudify CLI a lot.  It does this by storing some state in your $HOME/.cfyx directory.  All commmands to _cfyx_ get ultimately passed through to _cfy_, but potential changed or enhanced.  Note that currently _cfyx_ is not tenant aware, IOW it doesn't have separate state for each tenant.  Note also that partial commands work, e.g. _cfyx can_ will trigger a cancel of the last execution.
+The goal _cfyx_ is to simplify life for those who use the Cloudify CLI a lot.  It does this by storing some state in your $HOME/.cfyx directory.  All commmands to _cfyx_ get ultimately passed through to _cfy_, but potential changed or enhanced.  For the execution/deployment tracking to work, you need to use _cfyx_ for all Cloudify CLI interactions.  Note that currently _cfyx_ is not tenant aware, IOW it doesn't have separate state for each tenant.  Note also that partial commands work, e.g. _cfyx can_ will trigger a cancel of the last execution.
 
 
 ### Commands

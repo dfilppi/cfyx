@@ -11,9 +11,11 @@ The goal _cfyx_ is to simplify life for those who use the Cloudify CLI a lot.  I
 
 ### Commands
 
+* _cfyx context_ - Prints current context
 * _cfyx cancel_ - Cancels the last execution
 * _cfyx uninstall_ - Uninstalls the last deployment
 * _cfyx cuninstall_ - Cancels and uninstalls the last deployment
+* _cfyx dd__ - Deletes current deployment, offers uninstall if needed
 * _cfyx elist_ - Lists executions for last deployment
 * _cfyx dlist_ - Lists deployments
 * _cfyx evlist_ - Lists events for last execution

@@ -5,8 +5,29 @@ set -e
 # CFYX is a preprocessor to add conveniences to the cfy command
 
 ADDARGS=""
+SCRIPT_ARGS=$@
 CFYX_HOME=~/.cfyx
 CFY=`type -P cfy`
+
+# Gets the deployment argument from command line
+get_deparg(){
+  flag=0
+  for arg in $SCRIPT_ARGS; do
+    echo $arg
+    if [ "$arg" = "-d" ]; then
+      flag=1
+    elif [ $flag -eq 1 ]; then 
+      dpmt=$arg
+      break
+    fi
+  done
+  echo $dpmt
+}
+
+# Clears context for deployment
+dep_clear(){
+  rm -rf $CFYX_HOME/$1
+}
 
 if [ ! -d ~/.cfyx ]; then
   mkdir ~/.cfyx
@@ -17,17 +38,23 @@ if [ $# -eq 0 ]; then
   exit $?
 fi
 
+# The context is the most recently used deployment
+d=`ls -1rt $CFYX_HOME|tail -1`
+e=''
+if [ -n "$d" -a -f $CFYX_HOME/$d/execution ]; then
+  e=`cat $CFYX_HOME/$d/execution`
+fi
+
+has_context=0
+if [ -n "$d" -a -n "$e" ]; then
+  has_context=1
+fi
+
 if [[ $1 == ex* ]]; then
+  #Sets the context
   if [ "$2" = "start" ]; then
     flag=0
-    for arg in $@; do
-      if [ "$arg" = "-d" ]; then
-        flag=1
-      elif [ $flag -eq 1 ]; then 
-        dpmt=$arg
-        break
-      fi
-    done
+    dpmt=$(get_deparg)
 
     if [ ! -d $CFYX_HOME/$dpmt ]; then
       mkdir $CFYX_HOME/$dpmt
@@ -35,39 +62,78 @@ if [[ $1 == ex* ]]; then
 
     $CFY $*
 
-    echo $dpmt
     exe=`$CFY executions list -d $dpmt | grep '^| [a-z0-9]'|tail -1|cut -f2 -d' '`
     echo $exe > $CFYX_HOME/$dpmt/execution
+    exit 0
   else
     $CFY $*
+    exit $?
   fi
 
+elif [[ $1 == de* ]]; then
+  $CFY $*
+  # create deployment sets context
+  if [[ $2 == cr* ]]; then
+    for i in $(seq 3 $#); do
+      if [ "${!i}" = "-b" -o "${!i}" = "-i" ]; then
+        ((i++))
+        continue
+      fi
+      mkdir -p $CFYX_HOME/${!i}
+      exe=`$CFY executions list -d ${!i} | grep '^| [a-z0-9]'|tail -1|cut -f2 -d' '`
+      echo $exe > $CFYX_HOME/${!i}/execution
+      break
+    done
+  # deployment delete clears context
+  elif [[ $2 == de* ]]; then
+    dep_clear $3
+  fi
+  exit $?
+fi
+
+#########################
+# Added verbs below here
+#########################
+
+if [ $has_context -eq 0 ]; then
+  echo "context has not been set"
+  exit 1
+fi
+
+if [[ $1 == co* && $# == 1 ]]; then
+  echo "{context:{deployment:$d, execution:$e}}"
 elif [[ $1 == can* ]]; then
-    d=`ls -1rt $CFYX_HOME|tail -1`
-    e=`cat $CFYX_HOME/$d/execution`
-    $CFY executions cancel $e
+  $CFY executions cancel $e
 elif [[ $1 == uni* ]]; then
   # Handle simple uninstall. If no deployment specified use last
-  d=`ls -1rt $CFYX_HOME|tail -1`
-  $CFY executions start uninstall -d $d -p ignore_failure=true
+  cfy executions start uninstall -d $d -p ignore_failure=true
 elif [[ $1 == cun* ]]; then
   # Handle simple cuninstall (cancel+uninstall). If no deployment specified use last
-  d=`ls -1rt $CFYX_HOME|tail -1`
-  e=`cat $CFYX_HOME/$d/execution`
   $CFY executions cancel $e
   sleep 4
   $CFY executions start uninstall -d $d -p ignore_failure=true
 elif [[ $1 == eli* && $# == 1 ]]; then
   # list executions for last dep
-  d=`ls -1rt $CFYX_HOME|tail -1`
   $CFY exec list -d $d
 elif [[ $1 == dli* && $# == 1 ]]; then
   $CFY depl list
 elif [[ $1 == evli* && $# == 1 ]]; then
   # get events for last execution
-  d=`ls -1rt $CFYX_HOME|tail -1`
-  e=`cat $CFYX_HOME/$d/execution`
   $CFY eve list -e $e
+elif [ $1 = "dd" -a $# -eq 1 ]; then
+  $CFY depl delete $d
+  if [ $? -ne 0 ]; then
+    echo "Deployment delete failed, try uninstall? (y/n)\c"
+    read c
+    if [ "$c" = "y" -o "$c" = "Y" ]; then
+      cfy exe start uninstall -d $d -p ignore_failure=true
+      if [ $? -ne 0 ]; then
+        exit $?
+      fi
+    fi
+    $CFY depl delete $d
+  fi
+  rm -rf $CFYX_HOME/$d
 else
   echo $HERE
   $CFY $*

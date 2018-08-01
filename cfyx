@@ -13,7 +13,6 @@ CFY=`type -P cfy`
 get_deparg(){
   flag=0
   for arg in $SCRIPT_ARGS; do
-    echo $arg
     if [ "$arg" = "-d" ]; then
       flag=1
     elif [ $flag -eq 1 ]; then 

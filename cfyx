@@ -9,6 +9,10 @@ SCRIPT_ARGS=$@
 CFYX_HOME=~/.cfyx
 CFY=`type -P cfy`
 
+######################
+# Functions
+######################
+
 # Gets the deployment argument from command line
 get_deparg(){
   flag=0
@@ -27,6 +31,16 @@ get_deparg(){
 dep_clear(){
   rm -rf $CFYX_HOME/$1
 }
+
+check_context(){
+  if [ $has_context -eq 0 ]; then
+    echo "context has not been set"
+    exit 1
+  fi
+}
+
+######################
+######################
 
 if [ ! -d ~/.cfyx ]; then
   mkdir ~/.cfyx
@@ -94,46 +108,47 @@ fi
 # Added verbs below here
 #########################
 
-if [ $has_context -eq 0 ]; then
-  echo "context has not been set"
-  exit 1
-fi
 
-if [[ $1 == co* && $# == 1 ]]; then
-  echo "{context:{deployment:$d, execution:$e}}"
-elif [[ $1 == can* ]]; then
-  $CFY executions cancel $e
-elif [[ $1 == uni* ]]; then
-  # Handle simple uninstall. If no deployment specified use last
-  cfy executions start uninstall -d $d -p ignore_failure=true
-elif [[ $1 == cun* ]]; then
-  # Handle simple cuninstall (cancel+uninstall). If no deployment specified use last
-  $CFY executions cancel $e
-  sleep 4
-  $CFY executions start uninstall -d $d -p ignore_failure=true
-elif [[ $1 == eli* && $# == 1 ]]; then
-  # list executions for last dep
-  $CFY exec list -d $d
-elif [[ $1 == dli* && $# == 1 ]]; then
-  $CFY depl list
-elif [[ $1 == evli* && $# == 1 ]]; then
-  # get events for last execution
-  $CFY eve list -e $e
-elif [ $1 = "dd" -a $# -eq 1 ]; then
-  $CFY depl delete $d
-  if [ $? -ne 0 ]; then
-    echo "Deployment delete failed, try uninstall? (y/n)\c"
-    read c
-    if [ "$c" = "y" -o "$c" = "Y" ]; then
-      cfy exe start uninstall -d $d -p ignore_failure=true
-      if [ $? -ne 0 ]; then
-        exit $?
-      fi
-    fi
+if [ $has_context -eq 1 ]; then
+
+  if [[ $1 == co* && $# == 1 ]]; then
+    echo "{context:{deployment:$d, execution:$e}}"
+  elif [[ $1 == can* ]]; then
+    $CFY executions cancel $e
+  elif [[ $1 == uni* ]]; then
+    # Handle simple uninstall. If no deployment specified use last
+    cfy executions start uninstall -d $d -p ignore_failure=true
+  elif [[ $1 == cun* ]]; then
+    # Handle simple cuninstall (cancel+uninstall). If no deployment specified use last
+    $CFY executions cancel $e
+    sleep 4
+    $CFY executions start uninstall -d $d -p ignore_failure=true
+  elif [[ $1 == eli* && $# == 1 ]]; then
+    # list executions for last dep
+    $CFY exec list -d $d
+  elif [[ $1 == dli* && $# == 1 ]]; then
+    $CFY depl list
+  elif [[ $1 == evli* && $# == 1 ]]; then
+    # get events for last execution
+    $CFY eve list -e $e
+  elif [ $1 = "dd" -a $# -eq 1 ]; then
     $CFY depl delete $d
+    if [ $? -ne 0 ]; then
+      echo "Deployment delete failed, try uninstall? (y/n)\c"
+      read c
+      if [ "$c" = "y" -o "$c" = "Y" ]; then
+        cfy exe start uninstall -d $d -p ignore_failure=true
+        if [ $? -ne 0 ]; then
+          exit $?
+        fi
+      fi
+      $CFY depl delete $d
+    fi
+    rm -rf $CFYX_HOME/$d
+  else
+    $CFY $*
   fi
-  rm -rf $CFYX_HOME/$d
+
 else
-  echo $HERE
   $CFY $*
 fi
